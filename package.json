@@ -1,0 +1,17 @@
+
+{
+  "name": "logseq-interval-hints",
+  "version": "0.0.1",
+  "author": "KerfuffleV2",
+  "main": "./index.html",
+  "description": "Flexible plugin that annotates deadline/schedule times with a countdown or time difference",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kerfufflev2/logseq-plugin-interval-hints.git"
+  },
+  "license": "MIT",
+  "logseq": {
+    "title": "Interval Hints",
+    "id": "b633b368-7881-497e-bd62-9ea4238cdd9a"
+  }
+}

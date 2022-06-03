@@ -1,0 +1,5 @@
+.vscode
+*.bak
+*.zip
+*~
+/logseq-interval-hints/
