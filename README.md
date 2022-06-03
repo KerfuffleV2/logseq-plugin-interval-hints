@@ -5,6 +5,7 @@
 Configurable [Logseq](https://www.logseq.com/) plugin to annotate deadline and scheduled times
 with a countdown or interval.
 
+
 ## Features
 
 * Block renderer to add countdowns/elapsed time anywhere.
@@ -15,6 +16,13 @@ with a countdown or interval.
 * Can update hints periodically.
 * Hints can be styled with CSS.
 
+
+## Installation
+
+1. **(Recommended)** Install from the plugin marketplace. Search for `interval hints`.
+2. Turn on developer mode in settings and load this repo as an "unpacked plugin" from the Logseq plugins page (`t p`).
+
+
 ## Screenshots
 
 #### In use
@@ -24,6 +32,7 @@ with a countdown or interval.
 #### Settings
 
 ![Settings example screenshot](screenshots/settings-example.png)
+
 
 ## Styles
 
