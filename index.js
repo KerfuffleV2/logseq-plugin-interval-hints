@@ -77,9 +77,9 @@ const TIME_SELECTOR = '.timestamp time';
 const STYLES = `
   .${MAIN_CLASS} { margin-left: 0.25em; padding-left: 0px; font-family: monospace; }
 
-  .${FUTURE_CLASS} > .${LABEL_CLASS}::before { content: '⌛'; }
+  .${FUTURE_CLASS} > .${LABEL_CLASS}::before { content: '⏳'; }
   .${FUTURE_CLASS}.${SHORT_CLASS} > .${LABEL_CLASS}::before { content: '⏰'; }
-  .${PAST_CLASS} > .${LABEL_CLASS}::before { content: '⏳'; }
+  .${PAST_CLASS} > .${LABEL_CLASS}::before { content: '⌛'; }
 
   .${MAIN_CLASS} > * { color: var(--ls-secondary-text-color); }
   .${MAIN_CLASS} > ::after ,
@@ -146,8 +146,8 @@ function generateIntervals(sec, minSec) {
 }
 
 
-function updateHint(el) {
-  const now = msToSecs(new Date());
+function updateHint(el, now) {
+  if (!now) now = msToSecs(new Date());
   const then = parseInt(el.getAttribute(TIMESTAMP_ATTRIBUTE));
   const diff = Math.abs(then - now);
   const isFuture = then >= now;
@@ -180,7 +180,8 @@ function updateHint(el) {
 
 
 function updateHints() {
-  appContainerEl.querySelectorAll('.' + MAIN_CLASS).forEach(updateHint);
+  const now = msToSecs(new Date());
+  appContainerEl.querySelectorAll('.' + MAIN_CLASS).forEach(hint => updateHint(hint, now));
 }
 
 
@@ -231,7 +232,7 @@ function handleRenderer({ slot, payload: { arguments } }) {
     updateHint(el);
     template = el.outerHTML;
   }
-  logseq.provideUI({ key: 'lsp-interval-hints-' + slot, reset: true, slot, template });
+  logseq.provideUI({ key: 'lsp-interval-hints-' + slot, slot, template, reset: true });
 }
 
 

@@ -46,9 +46,9 @@ version of the default style in `custom.css`.
 ```css
 .lsp-interval-hints { margin-left: 0.25em; padding-left: 0px; font-family: monospace; }
 
-.lsp-interval-hints-future::before { content: '⌛'; }
-.lsp-interval-hints-future.lsp-interval-hints-short::before { content: '⏰'; }
-.lsp-interval-hints-past::before { content: '⏳'; }
+.lsp-interval-hints-future > .lsp-interval-hints-label::before { content: '⏳'; }
+.lsp-interval-hints-future.lsp-interval-hints-short > .lsp-interval-hints-label::before { content: '⏰'; }
+.lsp-interval-hints-past > .lsp-interval-hints-label::before { content: '⌛'; }
 
 .lsp-interval-hints > * { color: var(--ls-secondary-text-color); }
 .lsp-interval-hints > ::after ,
