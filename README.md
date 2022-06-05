@@ -25,6 +25,8 @@ with a countdown or interval.
 
 ## Screenshots
 
+**Note**: May not reflect all features/changes in the current version.
+
 #### In use
 
 ![Usage example screenshot](screenshots/usage-example.png)
@@ -40,6 +42,25 @@ To be used in `custom.css` which is editable from the Logseq settings (`t s` def
 
 When using complex styles it may be useful to use the `no-default-styles` option in the plugin settings and just use a modified
 version of the default style in `custom.css`.
+
+
+**Note**: All classes listed start with `lsp-interval-hints`.
+
+CSS Class|Description
+-|-
+` `|Container element for hints.
+`-future`|Applied to container when time is in the future.
+`-past`|Applied to container when time is in the past.
+`-short`|Applied to container when duration is considered short.
+`-renderer`|Applied to container for renderer hints.
+`-label`|Applied to child element for label (⏳, ⌛, etc)
+`-d`|Applied to child element containing number of days.
+`-h`|As above, but for hours.
+`-m`|As above, but for minutes.
+`-s`|As above, but for seconds.
+
+In addition to the above, the class `hidden` (without the `lsp-interval-hints`) prefix is used for hints that are hidden. Hints
+may be hidden if they are below the minimum duration or based on the `show-future`/`show-past` settings.
 
 ### Default
 

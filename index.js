@@ -1,16 +1,18 @@
+'use strict';
+
 const SETTINGS_SCHEMA = [
   {
     key: 'show-future',
     type: 'boolean',
     title: 'Future',
-    description: 'Add hint for events in the future',
+    description: 'Add hint for events in the future. Requires a page refresh to apply.',
     default: true,
   },
   {
     key: 'show-past',
     type: 'boolean',
     title: 'Past',
-    description: 'Add hint for events in the past',
+    description: 'Add hint for events in the past. Requires a page refresh to apply.',
     default: true,
   },
   {
@@ -19,7 +21,7 @@ const SETTINGS_SCHEMA = [
     title: 'Minimum interval',
     enumPicker: 'select',
     enumChoices: ['days', 'hours', 'minutes', 'seconds'],
-    description: 'If set to hours, the hint will only be shown if the interval is at least an hour.',
+    description: 'If set to hours, the hint will only be shown if the interval is at least an hour. Requires a page refresh to apply.',
     default: 'hours',
   },
   {
@@ -42,6 +44,13 @@ const SETTINGS_SCHEMA = [
     title: 'Update interval',
     description: 'Update hints at this interval (seconds). Any value below 1 disables this feature. Note: Updates have a performance cost. Setting the value lower than 600 (10 minutes) is not recommended.',
     default: 0,
+  },
+  {
+    key: 'always-show-renderer',
+    type: 'boolean',
+    title: 'Always show renderer hints',
+    description: 'Always show renderer hints, regardless of the show-future/show-past and minimum-interval settings. Requires a page refresh to apply.',
+    default: false,
   },
   {
     key: 'no-default-styles',
@@ -95,6 +104,7 @@ const STYLES = `
 
 let cfgShowFuture = true, cfgShowPast = true, cfgMinInterval = 60;
 let cfgUpdateOnEdit = true, cfgUpdateInterval = null, cfgShortDuration = 3600;
+let cfgAlwaysShowRenderer = false;
 
 let updateTimer = null, appContainerEl = null;
 
@@ -105,6 +115,7 @@ function clearChildren(node) {
   for (let child = node.lastChild; child; node.removeChild(child), child = node.lastChild) {}
 }
 
+
 function msToSecs(ms) {
   return Math.trunc(((ms instanceof Date) ? ms.valueOf() : ms) / 1000);
 }
@@ -114,6 +125,7 @@ function settingsHandler(newSettings, _oldSettings) {
   cfgShowFuture = newSettings['show-future'] !== false;
   cfgShowPast = newSettings['show-past'] !== false;
   cfgUpdateOnEdit = newSettings['update-on-edit'] !== false;
+  cfgAlwaysShowRenderer = newSettings['always-show-renderer'] !== false;
   cfgMinInterval = INTERVALS_LOOKUP[(newSettings['minimum-interval'] || 'm')[0]];
   if (updateTimer) {
     clearTimeout(updateTimer);
@@ -151,7 +163,8 @@ function updateHint(el, now) {
   const then = parseInt(el.getAttribute(TIMESTAMP_ATTRIBUTE));
   const diff = Math.abs(then - now);
   const isFuture = then >= now;
-  const isHidden = (isFuture && !cfgShowFuture) || (!isFuture && !cfgShowPast);
+  const alwaysShown = cfgAlwaysShowRenderer && el.classList.contains(RENDERER_CLASS);
+  const isHidden = !alwaysShown && ((isFuture && !cfgShowFuture) || (!isFuture && !cfgShowPast));
   const isShort = cfgShortDuration > 0 && diff <= cfgShortDuration;
 
   clearChildren(el);
@@ -162,7 +175,8 @@ function updateHint(el, now) {
 
   if (isHidden) return;
 
-  const intervals = generateIntervals(diff, cfgMinInterval);
+  const minInterval = alwaysShown && diff < cfgMinInterval ? diff : cfgMinInterval;
+  const intervals = generateIntervals(diff, minInterval);
   if (intervals.length == 0) {
     el.classList.add(HIDDEN_CLASS);
     return;
@@ -207,6 +221,7 @@ function addHint(timeEl) {
     }
   }
   el.setAttribute(TIMESTAMP_ATTRIBUTE, msToSecs(then));
+  el.setAttribute('title', then.toLocaleString());
   updateHint(el);
 }
 
@@ -217,18 +232,21 @@ function hintTimer() {
 }
 
 
-function handleRenderer({ slot, payload: { arguments } }) {
-  let [type, datetime] = arguments;
-  if (!newEl || !newText || type !== ':interval-hint') return;
-  datetime = datetime.trim();
+const DATE_RE = /^2\d{3}\W\d{2}\W\d{2}$/;
+
+function handleRenderer({ slot, payload: { arguments: rargs } }) {
+  let [type, datetime] = rargs;
+  if (type !== ':interval-hint') return;
+  datetime = datetime?.trim?.();
+  if (datetime && DATE_RE.test(datetime)) datetime = datetime + 'T00:00';
   let template, stamp = new Date(datetime);
   if (isNaN(stamp)) {
     template = `(interval-hint: Invalid datetime)`;
   } else {
     let el = newEl(CONTAINER_ELEMENT);
-    el.classList.add(MAIN_CLASS);
-    el.classList.add(RENDERER_CLASS);
+    el.classList.add(MAIN_CLASS, RENDERER_CLASS);
     el.setAttribute(TIMESTAMP_ATTRIBUTE, msToSecs(stamp));
+    el.setAttribute('title', stamp.toLocaleString());
     updateHint(el);
     template = el.outerHTML;
   }
@@ -236,9 +254,23 @@ function handleRenderer({ slot, payload: { arguments } }) {
 }
 
 
+function handleMutations(mutations) {
+  if (!(cfgShowFuture || cfgShowPast)) return;
+  for (const mutation of mutations) {
+    for (const node of mutation.addedNodes)
+      (node.querySelectorAll?.(TIME_SELECTOR) || []).forEach(addHint)
+  }
+}
+
+
 function main() {
   newEl = parent.document.createElement.bind(parent.document);
   newText = parent.document.createTextNode.bind(parent.document);
+  if (!newEl || !newText) {
+    console.log('**** logseq-interval-hints: Could not get element/text constructor! Bailing out.');
+    return;
+  }
+
   logseq.onSettingsChanged(settingsHandler);
   logseq.useSettingsSchema(SETTINGS_SCHEMA);
 
@@ -248,9 +280,8 @@ function main() {
     return;
   }
   logseq.App.onMacroRendererSlotted(handleRenderer);
-  const observer = new MutationObserver(mutationList => mutationList.forEach(mutation => mutation.addedNodes.forEach(
-    node => node.querySelectorAll ? node.querySelectorAll(TIME_SELECTOR).forEach(addHint) : undefined
-  )));
+
+  const observer = new MutationObserver(handleMutations);
   observer.observe(appContainerEl, { subtree: true, childList: true });
   logseq.beforeunload(async () => {
     observer.disconnect();
@@ -258,6 +289,9 @@ function main() {
       clearTimeout(updateTimer);
       updateTimer = null;
     }
+    appContainerEl.querySelectorAll('.' + MAIN_CLASS).forEach(node => {
+      try { node?.remove?.(); } catch (_err) { /* pass */ }
+    });
   });
 
 }
