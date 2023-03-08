@@ -1,111 +1,116 @@
 'use strict';
 
-const SETTINGS_SCHEMA = [
-  {
-    key: 'show-future',
-    type: 'boolean',
-    title: 'Future',
-    description:
-      'Add hint for events in the future. Requires a page refresh to apply.',
-    default: true,
-  },
-  {
-    key: 'show-past',
-    type: 'boolean',
-    title: 'Past',
-    description:
-      'Add hint for events in the past. Requires a page refresh to apply.',
-    default: true,
-  },
-  {
-    key: 'minimum-interval',
-    type: 'enum',
-    title: 'Minimum interval',
-    enumPicker: 'select',
-    enumChoices: ['days', 'hours', 'minutes', 'seconds'],
-    description:
-      'If set to hours, the hint will only be shown if the interval is at least an hour. Requires a page refresh to apply.',
-    default: 'hours',
-  },
-  {
-    key: 'interval-choices',
-    type: 'enum',
-    title: 'Intervals to display',
-    enumPicker: 'checkbox',
-    enumChoices: ['years', 'months', 'days', 'hours', 'minutes', 'seconds'],
-    description: 'How the intervals will be divided and displayed',
-    default: ['hours', 'minutes', 'seconds'],
-  },
-  {
-    key: 'short-interval-threshold',
-    type: 'number',
-    title: 'Short interval threshold',
-    description:
-      'Minimum time difference to be considered short. Value in seconds. Days: 86400, hours: 3600, minutes: 60. Any value below 1 disables the feature.',
-    default: 3600,
-  },
-  {
-    key: 'update-on-edit',
-    type: 'boolean',
-    title: 'Update on edit',
-    description:
-      'Dynamically updates hints when the time is edited. Requires a page refresh to apply. Note: May have a noticeable performance impact on pages with many schedule/deadline entries.',
-    default: true,
-  },
-  {
-    key: 'update-interval',
-    type: 'number',
-    title: 'Update interval',
-    description:
-      'Update hints at this interval (seconds). Any value below 1 disables this feature. Note: Updates have a performance cost. Setting the value lower than 600 (10 minutes) is not recommended.',
-    default: 0,
-  },
-  {
-    key: 'always-show-renderer',
-    type: 'boolean',
-    title: 'Always show renderer hints',
-    description:
-      'Always show renderer hints, regardless of the show-future/show-past and minimum-interval settings. Requires a page refresh to apply.',
-    default: false,
-  },
-  {
-    key: 'no-default-styles',
-    type: 'boolean',
-    title: 'Disable default styles',
-    description:
-      'Disables default CSS styling for hints. Note: Only useful when providing your own styles in "custom.css". Note: Requires Logseq restart/reload.',
-    default: false,
-  },
-];
+const DEFAULT_INTERVAL_CHOICES = ['days', 'hours', 'minutes', 'seconds'],
+  SETTINGS_SCHEMA = [
+    {
+      key: 'show-future',
+      type: 'boolean',
+      title: 'Future',
+      description:
+        'Add hint for events in the future. Requires a page refresh to apply.',
+      default: true,
+    },
+    {
+      key: 'show-past',
+      type: 'boolean',
+      title: 'Past',
+      description:
+        'Add hint for events in the past. Requires a page refresh to apply.',
+      default: true,
+    },
+    {
+      key: 'minimum-interval',
+      type: 'enum',
+      title: 'Minimum interval',
+      enumPicker: 'select',
+      enumChoices: ['days', 'hours', 'minutes', 'seconds'],
+      description:
+        'If set to hours, the hint will only be shown if the interval is at least an hour. Requires a page refresh to apply.',
+      default: 'hours',
+    },
+    {
+      key: 'interval-choices',
+      type: 'enum',
+      title: 'Intervals to display',
+      enumPicker: 'checkbox',
+      enumChoices: ['years', 'months', 'days', 'hours', 'minutes', 'seconds'],
+      description:
+        'Intervals to consider when calculating the time difference. Note: Months are calculated based on a 30 day period and not the calendar.',
+      default: DEFAULT_INTERVAL_CHOICES,
+    },
+    {
+      key: 'short-interval-threshold',
+      type: 'number',
+      title: 'Short interval threshold',
+      description:
+        'Minimum time difference to be considered short. Value in seconds. Days: 86400, hours: 3600, minutes: 60. Any value below 1 disables the feature.',
+      default: 3600,
+    },
+    {
+      key: 'update-on-edit',
+      type: 'boolean',
+      title: 'Update on edit',
+      description:
+        'Dynamically updates hints when the time is edited. Requires a page refresh to apply. Note: May have a noticeable performance impact on pages with many schedule/deadline entries.',
+      default: true,
+    },
+    {
+      key: 'update-interval',
+      type: 'number',
+      title: 'Update interval',
+      description:
+        'Update hints at this interval (seconds). Any value below 1 disables this feature. Note: Updates have a performance cost. Setting the value lower than 600 (10 minutes) is not recommended.',
+      default: 0,
+    },
+    {
+      key: 'always-show-renderer',
+      type: 'boolean',
+      title: 'Always show renderer hints',
+      description:
+        'Always show renderer hints, regardless of the show-future/show-past and minimum-interval settings. Requires a page refresh to apply.',
+      default: false,
+    },
+    {
+      key: 'no-default-styles',
+      type: 'boolean',
+      title: 'Disable default styles',
+      description:
+        'Disables default CSS styling for hints. Note: Only useful when providing your own styles in "custom.css". Note: Requires Logseq restart/reload.',
+      default: false,
+    },
+  ];
 
 const INTERVALS = [
-  ['y', 31536000],
-  ['m', 2592000],
-  ['d', 86400],
-  ['h', 3600],
-  ['m', 60],
-  ['s', 1],
+  ['years', ['y', 31536000]],
+  ['months', ['o', 2592000]],
+  ['days', ['d', 86400]],
+  ['hours', ['h', 3600]],
+  ['minutes', ['m', 60]],
+  ['seconds', ['s', 1]],
 ];
-const INTERVALS_LOOKUP = Object.fromEntries(INTERVALS);
+
+const INTERVALS_LOOKUP = new Map(INTERVALS),
+  DEFAULT_INTERVALS = new Array(
+    DEFAULT_INTERVAL_CHOICES.map((k) => INTERVALS_LOOKUP.get(k))
+  );
 
 const PAST_CLASS = 'lsp-interval-hints-past',
-  FUTURE_CLASS = 'lsp-interval-hints-future';
-const MAIN_CLASS = 'lsp-interval-hints',
-  SHORT_CLASS = 'lsp-interval-hints-short';
-const LABEL_CLASS = 'lsp-interval-hints-label',
-  RENDERER_CLASS = 'lsp-interval-hints-renderer';
-const INTERVALPFX_CLASS = 'lsp-interval-hints-',
-  HIDDEN_CLASS = 'hidden';
-const CONTAINER_ELEMENT = 'span',
+  FUTURE_CLASS = 'lsp-interval-hints-future',
+  MAIN_CLASS = 'lsp-interval-hints',
+  SHORT_CLASS = 'lsp-interval-hints-short',
+  LABEL_CLASS = 'lsp-interval-hints-label',
+  RENDERER_CLASS = 'lsp-interval-hints-renderer',
+  INTERVALPFX_CLASS = 'lsp-interval-hints-',
+  HIDDEN_CLASS = 'hidden',
+  CONTAINER_ELEMENT = 'span',
   ITEM_ELEMENT = 'span',
-  LABEL_ELEMENT = 'span';
-const TIMESTAMP_ATTRIBUTE = 'data-timestamp';
+  LABEL_ELEMENT = 'span',
+  TIMESTAMP_ATTRIBUTE = 'data-timestamp';
 
-const APP_SELECTOR = '#app-container';
-const HINT_SELECTOR = CONTAINER_ELEMENT + '.' + MAIN_CLASS;
-const TIME_SELECTOR = '.timestamp time';
-
-const STYLES = `
+const APP_SELECTOR = '#app-container',
+  HINT_SELECTOR = CONTAINER_ELEMENT + '.' + MAIN_CLASS,
+  TIME_SELECTOR = '.timestamp time',
+  STYLES = `
   .${MAIN_CLASS} { margin-left: 0.25em; padding-left: 0px; font-family: monospace; }
 
   .${FUTURE_CLASS} > .${LABEL_CLASS}::before { content: '⏳'; }
@@ -117,20 +122,22 @@ const STYLES = `
   .${MAIN_CLASS} > ::before { color: var(--ls-page-inline-code-color); font-size: 0.8em; }
   .${MAIN_CLASS} > :not(:last-child)::after ,
   .${MAIN_CLASS} > :not(:last-child)::before { padding-right: .2em; }
+  .${INTERVALPFX_CLASS}y::after { content: 'Y'; }
+  .${INTERVALPFX_CLASS}o::after { content: 'MO'; }
   .${INTERVALPFX_CLASS}d::after { content: 'D'; }
   .${INTERVALPFX_CLASS}h::after { content: 'H'; }
   .${INTERVALPFX_CLASS}m::after { content: 'M'; }
   .${INTERVALPFX_CLASS}s::after { content: 'S'; }
   `;
 
-let cfgIntervalChoices = [];
-let cfgShowFuture = true,
+let cfgIntervalChoices = DEFAULT_INTERVALS,
+  cfgShowFuture = true,
   cfgShowPast = true,
-  cfgMinInterval = 60;
-let cfgUpdateOnEdit = true,
+  cfgMinInterval = 60,
+  cfgUpdateOnEdit = true,
   cfgUpdateInterval = null,
-  cfgShortDuration = 3600;
-let cfgAlwaysShowRenderer = false;
+  cfgShortDuration = 3600,
+  cfgAlwaysShowRenderer = false;
 
 let updateTimer = null,
   appContainerEl = null;
@@ -149,34 +156,21 @@ function msToSecs(ms) {
   return Math.trunc((ms instanceof Date ? ms.valueOf() : ms) / 1000);
 }
 
-function getIntervalFromStr(str) {
-  switch (str) {
-    case 'years':
-      return ['y', 31536000];
-    case 'months':
-      return ['m', 2592000];
-    case 'weeks':
-      return ['w', 604800];
-    case 'days':
-      return ['d', 86400];
-    case 'hours':
-      return ['h', 3600];
-    case 'minutes':
-      return ['m', 60];
-    case 'seconds':
-      return ['s', 1];
-  }
-}
-
 function settingsHandler(newSettings, _oldSettings) {
   cfgShowFuture = newSettings['show-future'] !== false;
   cfgShowPast = newSettings['show-past'] !== false;
   cfgUpdateOnEdit = newSettings['update-on-edit'] !== false;
   cfgAlwaysShowRenderer = newSettings['always-show-renderer'] !== false;
   cfgMinInterval =
-    INTERVALS_LOOKUP[(newSettings['minimum-interval'] || 'm')[0]];
-  cfgIntervalChoices =
-    newSettings['interval-choices']?.map(getIntervalFromStr) || INTERVALS;
+    INTERVALS_LOOKUP.get(newSettings['minimum-interval'] || 'minutes') ??
+    INTERVALS_LOOKUP.get('minutes');
+  if (newSettings['interval-choices']) {
+    cfgIntervalChoices = newSettings['interval-choices']
+      .map((k) => INTERVALS_LOOKUP.get(k))
+      .sort((a, b) => b[1] - a[1]);
+  } else {
+    cfgIntervalChoices = DEFAULT_INTERVALS;
+  }
   if (updateTimer) {
     clearTimeout(updateTimer);
     updateTimer = null;

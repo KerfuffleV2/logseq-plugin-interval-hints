@@ -54,7 +54,9 @@ CSS Class|Description
 `-short`|Applied to container when duration is considered short.
 `-renderer`|Applied to container for renderer hints.
 `-label`|Applied to child element for label (⏳, ⌛, etc)
-`-d`|Applied to child element containing number of days.
+`-y`|Applied to child element containing number of years.
+`-o`|As above, but for months.
+`-d`|As above, but for days.
 `-h`|As above, but for hours.
 `-m`|As above, but for minutes.
 `-s`|As above, but for seconds.
@@ -76,6 +78,8 @@ may be hidden if they are below the minimum duration or based on the `show-futur
 .lsp-interval-hints > ::before { color: var(--ls-page-inline-code-color); font-size: 0.8em; }
 .lsp-interval-hints > :not(:last-child)::after ,
 .lsp-interval-hints > :not(:last-child)::before { padding-right: .2em; }
+.lsp-interval-hints-y::after { content: 'Y'; }
+.lsp-interval-hints-o::after { content: 'MO'; }
 .lsp-interval-hints-d::after { content: 'D'; }
 .lsp-interval-hints-h::after { content: 'H'; }
 .lsp-interval-hints-m::after { content: 'M'; }
@@ -87,8 +91,11 @@ may be hidden if they are below the minimum duration or based on the `show-futur
 Moves the interval type (hour, minutes, etc) before the number. This example also changes it to lowercase.
 
 ```css
+.lsp-interval-hints-y::after , .lsp-interval-hints-o::after ,
 .lsp-interval-hints-d::after , .lsp-interval-hints-h::after ,
 .lsp-interval-hints-m::after , .lsp-interval-hints-s::after { all: revert !important; }
+.lsp-interval-hints-y::after { content: 'y' !important; }
+.lsp-interval-hints-o::after { content: 'mo' !important; }
 .lsp-interval-hints-d::before { content: 'd' !important; }
 .lsp-interval-hints-h::before { content: 'h' !important; }
 .lsp-interval-hints-m::before { content: 'm' !important; }
